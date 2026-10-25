@@ -1,0 +1,2187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FireGuard AI // Multi-Hazard IoT Safety & Predictive Intelligence</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for real-time sensor & risk visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #050507;
+    }
+
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Ambient mesh background */
+    .mesh-bg {
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(220, 38, 38, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(239, 68, 68, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.02) 0%, transparent 60%);
+    }
+
+    .grid-lines {
+      background-size: 28px 28px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
+
+    @keyframes fire-strobe {
+      0%, 100% {
+        box-shadow: 0 0 35px rgba(220, 38, 38, 0.4), inset 0 0 15px rgba(220, 38, 38, 0.2);
+        border-color: #ef4444;
+      }
+      50% {
+        box-shadow: 0 0 70px rgba(239, 68, 68, 0.8), inset 0 0 30px rgba(239, 68, 68, 0.45);
+        border-color: #ffffff;
+      }
+    }
+
+    .flame-active-glow {
+      animation: fire-strobe 1s infinite ease-in-out;
+    }
+
+    @keyframes live-pulse {
+      0% { transform: scale(0.95); opacity: 0.7; }
+      50% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.7; }
+    }
+    .pulse-live {
+      animation: live-pulse 1.8s ease-in-out infinite;
+    }
+
+    /* Custom slim scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #09090b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #dc2626;
+    }
+  </style>
+</head>
+<body class="text-white min-h-screen mesh-bg grid-lines flex flex-col selection:bg-red-600 selection:text-white relative">
+
+  <!-- ======================== HEADER ======================== -->
+  <header class="sticky top-0 z-40 bg-black/90 backdrop-blur-xl border-b border-zinc-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      
+      <!-- Brand & Spec Badge -->
+      <div class="flex items-center gap-3.5">
+        <div id="brandLogoBox" class="w-11 h-11 rounded-2xl bg-zinc-900 border-2 border-red-600/60 flex items-center justify-center text-red-500 shadow-[0_0_20px_rgba(220,38,38,0.25)] transition-all">
+          <i data-lucide="flame" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs uppercase tracking-widest font-black text-red-500 font-mono-code">FIREGUARD AI</span>
+            <span class="text-[10px] font-mono-code bg-white text-black font-extrabold px-2 py-0.5 rounded uppercase">Arduino Uno</span>
+            <span class="hidden sm:inline-block text-[10px] font-mono-code bg-red-950 text-red-400 border border-red-800 font-bold px-2 py-0.5 rounded uppercase">Predictive SafeNode</span>
+          </div>
+          <h1 class="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-2 mt-0.5">
+            Atmospheric, Gas & Electrical Telemetry
+          </h1>
+        </div>
+      </div>
+
+      <!-- Header Action Controls -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Desktop OS Notifications Button -->
+        <button id="btnToggleNotify" class="hidden sm:flex items-center gap-2 px-3 py-2 text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl transition text-zinc-300">
+          <i data-lucide="bell" class="w-4 h-4 text-red-500"></i>
+          <span id="labelNotify">Desktop Alerts</span>
+          <span id="badgeNotifyDot" class="w-2 h-2 rounded-full bg-zinc-600"></span>
+        </button>
+
+        <!-- Web Audio Siren Toggle -->
+        <button id="btnToggleAudio" title="Toggle Alarm Siren" class="p-2.5 text-zinc-300 hover:text-white bg-zinc-900 border border-zinc-800 hover:border-red-600/50 rounded-xl transition">
+          <i data-lucide="volume-2" id="iconAudio" class="w-4 h-4 text-white"></i>
+        </button>
+
+        <!-- Hardware Pinout Modal Trigger -->
+        <button id="btnOpenPinout" class="hidden md:flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 rounded-xl transition">
+          <i data-lucide="cpu" class="w-4 h-4 text-red-400"></i>
+          <span>Pinout Reference</span>
+        </button>
+
+        <!-- Serial Status Pill -->
+        <div id="connStatusPill" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-mono-code font-bold bg-zinc-900 border border-zinc-800 text-zinc-400">
+          <span id="connStatusDot" class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
+          <span id="connStatusText">OFFLINE</span>
+        </div>
+
+        <!-- Serial Connect / Disconnect button -->
+        <button id="btnSerialConnect" class="flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-black text-white bg-red-600 hover:bg-red-500 active:scale-95 transition rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.4)]">
+          <i data-lucide="usb" class="w-4 h-4"></i>
+          <span id="btnSerialConnectText">Connect USB (9600)</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ======================== EARLY WARNING BANNER (PREDICTIVE) ======================== -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 w-full">
+    <div id="predictiveWarningBanner" class="hidden bg-amber-950/70 border-2 border-amber-500/80 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xl">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500 text-black flex items-center justify-center font-black flex-shrink-0">
+          <i data-lucide="trending-up" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-mono-code font-black uppercase tracking-wider bg-amber-500 text-black px-2 py-0.5 rounded">PREDICTIVE PRE-HAZARD ADVISORY</span>
+            <span id="predWarningScore" class="text-xs font-mono-code text-amber-300 font-bold">Risk Score: --/100</span>
+          </div>
+          <h3 id="predWarningTitle" class="text-sm sm:text-base font-bold text-white tracking-tight mt-0.5">Abnormal Sensor Gradient Detected</h3>
+          <p id="predWarningText" class="text-xs text-amber-200/80">Sensor trajectory indicates accelerating environmental or thermal risk prior to hardware threshold trip.</p>
+        </div>
+      </div>
+      <button id="btnDismissPredWarning" class="text-xs font-mono-code text-amber-300 hover:text-white px-3 py-1.5 bg-black/40 hover:bg-black/70 rounded-lg border border-amber-500/40 transition">
+        Acknowledge
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================== CRITICAL HAZARD BANNER ======================== -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full">
+    <div id="hazardAlertBanner" class="hidden bg-zinc-950 border-2 border-red-600 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 flame-active-glow shadow-2xl">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-lg animate-bounce flex-shrink-0">
+          <i data-lucide="alert-triangle" class="w-7 h-7"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono-code font-black uppercase tracking-wider bg-red-600 text-white px-2 py-0.5 rounded">CRITICAL HAZARD TRIGGERED</span>
+            <span id="hazardDetailBadge" class="text-xs font-mono-code text-red-400">Hardware Alarm Active</span>
+          </div>
+          <h2 id="hazardHeadline" class="text-lg sm:text-xl font-black text-white tracking-tight mt-1">EMERGENCY THRESHOLD EXCEEDED</h2>
+          <p class="text-xs text-zinc-400 mt-0.5">Physical buzzer on Pin D8 and Red LED on Pin D9 have engaged.</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+        <button id="btnSilenceSiren" class="px-4 py-2.5 bg-white text-black hover:bg-zinc-200 active:scale-95 text-xs font-black rounded-xl transition tracking-wide uppercase shadow-lg">
+          Silence Web Siren
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== MAIN CONTENT ======================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Primary Sensor Grid (5 Sensor Metrics) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      
+      <!-- 1. Flame Sensor -->
+      <div id="cardFlameState" class="bg-white text-black border-2 border-zinc-200 rounded-3xl p-5 relative overflow-hidden shadow-xl transition-all duration-300">
+        <div class="flex items-center justify-between text-zinc-600 mb-2">
+          <span class="text-[11px] font-black uppercase tracking-wider font-mono-code">Flame Sensor (D3)</span>
+          <div id="badgeFlameIcon" class="w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+          </div>
+        </div>
+        
+        <div class="flex items-baseline gap-2">
+          <span id="metricFlameText" class="text-3xl font-black tracking-tight text-black font-mono-code">SAFE</span>
+        </div>
+
+        <div class="mt-3 pt-2.5 border-t border-zinc-200/80 flex items-center justify-between text-[11px]">
+          <span class="font-medium text-zinc-500">Buzzer (D8) & LED (D9):</span>
+          <span id="metricBuzzerText" class="font-mono-code font-bold text-zinc-900 bg-zinc-100 px-2 py-0.5 rounded">STANDBY</span>
+        </div>
+      </div>
+
+      <!-- 2. Temperature (DHT22) -->
+      <div class="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 relative overflow-hidden shadow-xl hover:border-red-600/50 transition">
+        <div class="flex items-center justify-between text-zinc-400 mb-2">
+          <span class="text-[11px] font-black uppercase tracking-wider font-mono-code">DHT22 Temp (D2)</span>
+          <div class="w-8 h-8 rounded-xl bg-red-600/10 text-red-500 border border-red-600/30 flex items-center justify-center">
+            <i data-lucide="thermometer" class="w-4 h-4"></i>
+          </div>
+        </div>
+
+        <div class="flex items-baseline gap-1.5">
+          <span id="metricTempC" class="text-3xl font-black font-mono-code tracking-tight text-white">--.-</span>
+          <span class="text-lg font-black text-red-500 font-mono-code">°C</span>
+        </div>
+
+        <div class="mt-3 pt-2.5 border-t border-zinc-800 flex items-center justify-between text-[11px]">
+          <span class="text-zinc-500">Threshold:</span>
+          <span class="font-mono-code font-bold text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">&gt; 50.0 °C</span>
+        </div>
+      </div>
+
+      <!-- 3. Relative Humidity (DHT22) -->
+      <div class="bg-white text-black border-2 border-zinc-200 rounded-3xl p-5 relative overflow-hidden shadow-xl transition-all duration-300">
+        <div class="flex items-center justify-between text-zinc-600 mb-2">
+          <span class="text-[11px] font-black uppercase tracking-wider font-mono-code">DHT22 Humidity</span>
+          <div class="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center">
+            <i data-lucide="droplets" class="w-4 h-4"></i>
+          </div>
+        </div>
+
+        <div class="flex items-baseline gap-1.5">
+          <span id="metricHumidity" class="text-3xl font-black font-mono-code tracking-tight text-black">--.-</span>
+          <span class="text-lg font-black text-red-600 font-mono-code">%</span>
+        </div>
+
+        <div class="mt-3 pt-2.5 border-t border-zinc-200 flex flex-col gap-1">
+          <div class="w-full bg-zinc-200 h-1.5 rounded-full overflow-hidden">
+            <div id="humProgressBar" class="bg-red-600 h-full w-0 transition-all duration-500"></div>
+          </div>
+          <div class="flex justify-between text-[10px] font-mono-code text-zinc-500 font-semibold">
+            <span>Air Moisture</span>
+            <span id="humLabelRating">Optimal</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. MQ-135 Gas / Air Quality -->
+      <div class="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 relative overflow-hidden shadow-xl hover:border-zinc-700 transition">
+        <div class="flex items-center justify-between text-zinc-400 mb-2">
+          <span class="text-[11px] font-black uppercase tracking-wider font-mono-code">MQ-135 Gas (A0)</span>
+          <div class="w-8 h-8 rounded-xl bg-zinc-900 text-white border border-zinc-800 flex items-center justify-center">
+            <i data-lucide="wind" class="w-4 h-4 text-amber-500"></i>
+          </div>
+        </div>
+
+        <div class="flex items-baseline gap-1.5">
+          <span id="metricMq135" class="text-3xl font-black font-mono-code tracking-tight text-white">---</span>
+          <span class="text-xs font-mono-code text-zinc-400">ADC</span>
+        </div>
+
+        <div class="mt-3 pt-2.5 border-t border-zinc-800 flex items-center justify-between text-[11px]">
+          <span class="text-zinc-500">Limit: 400</span>
+          <span id="mq135StatusBadge" class="font-mono-code text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-800">NORMAL</span>
+        </div>
+      </div>
+
+      <!-- 5. ACS712 Current Sensor -->
+      <div class="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 relative overflow-hidden shadow-xl hover:border-zinc-700 transition">
+        <div class="flex items-center justify-between text-zinc-400 mb-2">
+          <span class="text-[11px] font-black uppercase tracking-wider font-mono-code">ACS712 Current (A1)</span>
+          <div class="w-8 h-8 rounded-xl bg-zinc-900 text-white border border-zinc-800 flex items-center justify-center">
+            <i data-lucide="zap" class="w-4 h-4 text-yellow-400"></i>
+          </div>
+        </div>
+
+        <div class="flex items-baseline gap-1.5">
+          <span id="metricCurrent" class="text-3xl font-black font-mono-code tracking-tight text-white">-.--</span>
+          <span class="text-lg font-black text-yellow-400 font-mono-code">A</span>
+        </div>
+
+        <div class="mt-3 pt-2.5 border-t border-zinc-800 flex items-center justify-between text-[11px]">
+          <span class="text-zinc-500">Limit: 5.0 A</span>
+          <span id="currentStatusBadge" class="font-mono-code text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-800">NORMAL</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 10-Minute Logger Progress -->
+    <div class="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 shadow-xl">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-red-600/10 border border-red-600/30 flex items-center justify-center text-red-500">
+            <i data-lucide="clock" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-red-500 font-mono-code">Automated Telemetry Logger</span>
+              <span class="text-[10px] font-mono-code bg-zinc-900 text-zinc-400 border border-zinc-800 px-2 py-0.5 rounded">Cycle: 10 Mins</span>
+            </div>
+            <h3 class="text-sm sm:text-base font-bold text-white">10-Minute Multi-Sensor Archive</h3>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+          <button id="btnManualSnapshot" disabled class="px-4 py-2 bg-white text-black hover:bg-zinc-200 disabled:opacity-40 disabled:pointer-events-none active:scale-95 text-xs font-black rounded-xl transition flex items-center gap-1.5 shadow">
+            <i data-lucide="camera" class="w-4 h-4"></i>
+            <span>Log Snapshot Now</span>
+          </button>
+          <div class="font-mono-code text-right">
+            <span class="text-xs text-zinc-500 block">Next Log In</span>
+            <span id="countdownDisplay" class="text-2xl font-black text-red-500 tracking-tight">10:00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-full bg-zinc-900 rounded-full h-2 overflow-hidden border border-zinc-800/80">
+        <div id="snapshotProgressBar" class="bg-gradient-to-r from-red-600 via-red-500 to-white h-full w-0 transition-all duration-1000"></div>
+      </div>
+    </div>
+
+    <!-- Live Telemetry Visualizer Chart -->
+    <div class="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 shadow-xl space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="trending-up" class="w-5 h-5 text-red-500"></i>
+            Live Sensor Trends
+          </h3>
+          <p class="text-xs text-zinc-400">Streamed from Arduino Uno via USB Serial (9600 Baud)</p>
+        </div>
+
+        <!-- Legend -->
+        <div class="flex flex-wrap items-center gap-3 text-xs font-mono-code">
+          <span class="flex items-center gap-1.5 text-red-500 font-bold">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block"></span> Temp (°C)
+          </span>
+          <span class="flex items-center gap-1.5 text-white font-bold">
+            <span class="w-2.5 h-2.5 rounded-full bg-white inline-block"></span> Humidity (%)
+          </span>
+          <span class="flex items-center gap-1.5 text-amber-400 font-bold">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> Gas (ADC)
+          </span>
+          <span class="flex items-center gap-1.5 text-yellow-300 font-bold">
+            <span class="w-2.5 h-2.5 rounded-full bg-yellow-300 inline-block"></span> Current (A)
+          </span>
+        </div>
+      </div>
+
+      <div class="h-64 sm:h-72 w-full">
+        <canvas id="liveTelemetryChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- NEW SECTION: AI FIRE RISK PREDICTION ENGINE (EXPLAINABLE INFERENCE)        -->
+    <!-- ========================================================================= -->
+    <section id="aiPredictionSection" class="bg-zinc-950 border-2 border-red-900/60 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(220,38,38,0.15)] space-y-6 relative overflow-hidden">
+      <!-- Ambient Glow Accent -->
+      <div class="absolute -top-24 -right-24 w-72 h-72 bg-red-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Engine Header -->
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-4 border-b border-zinc-800 relative z-10">
+        <div class="flex items-center gap-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-amber-600 text-white flex items-center justify-center shadow-lg shadow-red-950">
+            <i data-lucide="cpu" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs uppercase tracking-widest font-black text-red-500 font-mono-code">PREDICTIVE ANALYTICS</span>
+              <span class="text-[10px] font-mono-code bg-zinc-900 text-zinc-300 border border-zinc-700 px-2 py-0.5 rounded font-bold uppercase">Multi-Factor Rule-Based Engine v1.2</span>
+              <span class="text-[10px] font-mono-code bg-amber-950/60 text-amber-300 border border-amber-800/80 px-2 py-0.5 rounded font-bold">Modular ML Replacement Ready</span>
+            </div>
+            <h2 class="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2 mt-0.5">
+              AI Fire Risk Prediction Engine
+            </h2>
+          </div>
+        </div>
+
+        <!-- Engine Status Info Pill -->
+        <div class="flex items-center gap-3">
+          <div class="text-right font-mono-code text-xs">
+            <span class="text-zinc-500 block text-[10px]">Inference Cycle</span>
+            <span id="aiInferenceStatus" class="font-bold text-zinc-300">Synchronized with Serial Stream</span>
+          </div>
+          <div class="w-3 h-3 rounded-full bg-emerald-500 pulse-live" title="Inference online"></div>
+        </div>
+      </div>
+
+      <!-- Main Risk Scoring & Forecast Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-5 relative z-10">
+
+        <!-- 1. Risk Gauge & Category Card (5 Cols) -->
+        <div class="md:col-span-5 bg-black/80 border border-zinc-800 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono-code uppercase font-bold text-zinc-400">Current Hazard Risk Level</span>
+            <span id="aiRiskCategoryBadge" class="text-xs font-mono-code font-black px-3 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 uppercase tracking-wider">
+              LOW
+            </span>
+          </div>
+
+          <!-- Giant Numeric Score & Progress -->
+          <div class="flex flex-col items-center justify-center py-2 text-center">
+            <div class="flex items-baseline justify-center gap-1 font-mono-code">
+              <span id="aiRiskScoreNumber" class="text-6xl sm:text-7xl font-black tracking-tight text-emerald-400 transition-colors duration-300">08</span>
+              <span class="text-2xl font-bold text-zinc-500">/100</span>
+            </div>
+            <span class="text-xs font-mono-code text-zinc-400 mt-1">Composite Fire & Hazard Index</span>
+
+            <!-- Risk Progress Bar -->
+            <div class="w-full bg-zinc-900 rounded-full h-3 mt-4 overflow-hidden border border-zinc-800 p-0.5">
+              <div id="aiRiskProgressBar" class="h-full rounded-full transition-all duration-500 bg-emerald-500" style="width: 8%;"></div>
+            </div>
+
+            <!-- Risk Scale Legend -->
+            <div class="w-full flex justify-between text-[10px] font-mono-code text-zinc-500 mt-2">
+              <span class="text-emerald-400">0-24 Low</span>
+              <span class="text-yellow-400">25-49 Med</span>
+              <span class="text-amber-500">50-74 High</span>
+              <span class="text-red-500">75-100 Critical</span>
+            </div>
+          </div>
+
+          <!-- Short-Term Trajectory Forecast Pill -->
+          <div class="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono-code">
+            <span class="text-zinc-400">Short-Term Forecast:</span>
+            <div class="flex items-center gap-1.5 font-bold" id="aiForecastPill">
+              <i data-lucide="minus" class="w-4 h-4 text-zinc-400" id="aiForecastIcon"></i>
+              <span id="aiForecastText" class="text-zinc-300">STABLE (Δ ≈ 0.0/min)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Sensor Trajectory & Rate of Change Analysis (7 Cols) -->
+        <div class="md:col-span-7 bg-black/80 border border-zinc-800 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <div class="flex items-center justify-between pb-2 border-b border-zinc-800">
+            <span class="text-xs font-mono-code uppercase font-bold text-zinc-400 flex items-center gap-1.5">
+              <i data-lucide="activity" class="w-4 h-4 text-red-500"></i>
+              Multi-Sensor Trajectory & Rate of Change
+            </span>
+            <span class="text-[10px] font-mono-code text-zinc-500">Rolling Window: ~30s</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono-code">
+            
+            <!-- Temp Trend -->
+            <div class="p-3 bg-zinc-950 rounded-xl border border-zinc-800/80">
+              <span class="text-[10px] text-zinc-500 block">Temperature</span>
+              <div class="flex items-center gap-1 mt-1">
+                <span id="trendTempDelta" class="text-sm font-black text-white">0.0 °C</span>
+                <span id="trendTempIcon" class="text-zinc-500">→</span>
+              </div>
+              <span id="trendTempLabel" class="text-[10px] text-zinc-400 block mt-0.5">Steady</span>
+            </div>
+
+            <!-- Gas Trend -->
+            <div class="p-3 bg-zinc-950 rounded-xl border border-zinc-800/80">
+              <span class="text-[10px] text-zinc-500 block">MQ-135 Gas</span>
+              <div class="flex items-center gap-1 mt-1">
+                <span id="trendGasDelta" class="text-sm font-black text-white">0 ADC</span>
+                <span id="trendGasIcon" class="text-zinc-500">→</span>
+              </div>
+              <span id="trendGasLabel" class="text-[10px] text-zinc-400 block mt-0.5">Steady</span>
+            </div>
+
+            <!-- Current Trend -->
+            <div class="p-3 bg-zinc-950 rounded-xl border border-zinc-800/80">
+              <span class="text-[10px] text-zinc-500 block">ACS712 Load</span>
+              <div class="flex items-center gap-1 mt-1">
+                <span id="trendCurDelta" class="text-sm font-black text-white">0.00 A</span>
+                <span id="trendCurIcon" class="text-zinc-500">→</span>
+              </div>
+              <span id="trendCurLabel" class="text-[10px] text-zinc-400 block mt-0.5">Nominal</span>
+            </div>
+
+            <!-- Flame IR Delta -->
+            <div class="p-3 bg-zinc-950 rounded-xl border border-zinc-800/80">
+              <span class="text-[10px] text-zinc-500 block">Flame Priority</span>
+              <div class="flex items-center gap-1 mt-1">
+                <span id="trendFlameDelta" class="text-sm font-black text-emerald-400">0</span>
+                <span class="text-zinc-500">✓</span>
+              </div>
+              <span id="trendFlameLabel" class="text-[10px] text-zinc-400 block mt-0.5">Inactive</span>
+            </div>
+
+          </div>
+
+          <!-- Trend Forecast Summary Strip -->
+          <div class="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-xs flex items-center justify-between">
+            <span class="text-zinc-400 font-mono-code text-[11px]">Cumulative Gradient Verdict:</span>
+            <span id="aiGradientVerdict" class="font-mono-code font-bold text-zinc-300">Equilibrium / Normal Operating Envelope</span>
+          </div>
+
+          <div class="text-[10px] text-zinc-500 italic">
+            * Cautious estimation: Sensor gradients analyze 15-cycle rate of change. This prototype is an experimental decision-support tool, not a certified life-safety device.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 3. Explainability, Root Causes & Recommended Actions -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
+
+        <!-- Explanation Breakdown -->
+        <div class="bg-black/80 border border-zinc-800 rounded-2xl p-5 space-y-3">
+          <div class="flex items-center gap-2 text-xs font-mono-code font-bold text-zinc-300 uppercase pb-2 border-b border-zinc-800">
+            <i data-lucide="list-checks" class="w-4 h-4 text-red-500"></i>
+            Explainable Inference Decomposition
+          </div>
+          <p class="text-xs text-zinc-400">
+            Real-time breakdown of sensor contributors driving the 0-100 risk score:
+          </p>
+          <ul id="aiExplanationList" class="space-y-2 text-xs font-mono-code text-zinc-300">
+            <li class="flex items-center justify-between p-2 rounded-lg bg-zinc-950 border border-zinc-800/80">
+              <span class="flex items-center gap-2 text-emerald-400">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Optical Flame Sensor (D3)
+              </span>
+              <span class="font-bold text-zinc-400">0 pts (Safe)</span>
+            </li>
+            <li class="flex items-center justify-between p-2 rounded-lg bg-zinc-950 border border-zinc-800/80">
+              <span class="flex items-center gap-2 text-zinc-300">
+                <span class="w-2 h-2 rounded-full bg-zinc-600"></span>
+                Thermal Level & Rate of Change
+              </span>
+              <span class="font-bold text-zinc-400">0 pts (Baseline)</span>
+            </li>
+            <li class="flex items-center justify-between p-2 rounded-lg bg-zinc-950 border border-zinc-800/80">
+              <span class="flex items-center gap-2 text-zinc-300">
+                <span class="w-2 h-2 rounded-full bg-zinc-600"></span>
+                MQ-135 Gas / Combustion Precursors
+              </span>
+              <span class="font-bold text-zinc-400">0 pts (Nominal)</span>
+            </li>
+            <li class="flex items-center justify-between p-2 rounded-lg bg-zinc-950 border border-zinc-800/80">
+              <span class="flex items-center gap-2 text-zinc-300">
+                <span class="w-2 h-2 rounded-full bg-zinc-600"></span>
+                Electrical Current (ACS712)
+              </span>
+              <span class="font-bold text-zinc-400">0 pts (Normal)</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Recommended Action Protocol -->
+        <div class="bg-black/80 border border-zinc-800 rounded-2xl p-5 space-y-3 flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex items-center gap-2 text-xs font-mono-code font-bold text-zinc-300 uppercase pb-2 border-b border-zinc-800">
+              <i data-lucide="shield-alert" class="w-4 h-4 text-amber-500"></i>
+              Actionable Guidance & Protocol
+            </div>
+            <div id="aiActionBox" class="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs space-y-1.5">
+              <div class="flex items-center gap-2 font-mono-code font-bold text-emerald-400" id="aiActionHeader">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                STATUS NORMAL // NO ACTION REQUIRED
+              </div>
+              <p id="aiActionDetail" class="text-zinc-400 text-xs leading-relaxed">
+                All telemetry channels (optical, thermal, atmospheric, and electrical) are operating inside normal thresholds. Continue periodic monitoring.
+              </p>
+            </div>
+          </div>
+
+          <!-- Mini Risk Score Trend Canvas -->
+          <div class="pt-2 border-t border-zinc-800">
+            <div class="flex items-center justify-between text-[11px] font-mono-code text-zinc-400 mb-1">
+              <span>Risk Score History (Recent Inferences)</span>
+              <span id="aiScoreMinMax" class="text-zinc-500">Min: 0 | Max: 100</span>
+            </div>
+            <div class="h-20 w-full">
+              <canvas id="riskScoreMiniChart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- 4. Prediction History Table -->
+      <div class="space-y-3 pt-2">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="history" class="w-4 h-4 text-red-500"></i>
+            <h3 class="text-xs font-black text-white uppercase font-mono-code">Recent Prediction Audit Log</h3>
+            <span id="badgePredictionCount" class="text-[10px] font-mono-code px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400">0 evaluations</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btnExportPredCsv" class="px-2.5 py-1 text-xs font-mono-code font-bold text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition flex items-center gap-1.5">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              Export Risk CSV
+            </button>
+            <button id="btnClearPredHistory" class="p-1 text-zinc-500 hover:text-red-500 rounded-lg transition" title="Clear Risk History">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-2xl border border-zinc-800/80 max-h-48 overflow-y-auto">
+          <table class="w-full text-left text-xs font-mono-code">
+            <thead class="bg-black text-zinc-400 sticky top-0 border-b border-zinc-800">
+              <tr>
+                <th class="py-2.5 px-3">Time</th>
+                <th class="py-2.5 px-3">Score</th>
+                <th class="py-2.5 px-3">Category</th>
+                <th class="py-2.5 px-3">Trajectory</th>
+                <th class="py-2.5 px-3">Primary Factor</th>
+                <th class="py-2.5 px-3">Telemetry Snapshot</th>
+              </tr>
+            </thead>
+            <tbody id="predictionHistoryTableBody" class="divide-y divide-zinc-900 text-zinc-300">
+              <tr id="emptyPredRow">
+                <td colspan="6" class="py-6 text-center text-zinc-600 font-sans">
+                  Awaiting serial data to compute continuous risk evaluations.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Logs and Console Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Snapshots History Table -->
+      <div class="lg:col-span-7 bg-zinc-950 border border-zinc-800 rounded-3xl p-6 shadow-xl space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-black text-white flex items-center gap-2">
+                <i data-lucide="database" class="w-4 h-4 text-red-500"></i>
+                Stored Telemetry Archive
+              </h3>
+              <span id="badgeLogCount" class="text-xs bg-zinc-900 text-white font-mono-code font-bold px-2 py-0.5 rounded-full border border-zinc-800">0 logs</span>
+            </div>
+            <p class="text-xs text-zinc-400 mt-0.5">Persisted in browser localStorage automatically.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btnExportCsv" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-black bg-white hover:bg-zinc-200 active:scale-95 rounded-xl transition shadow">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Export CSV</span>
+            </button>
+            <button id="btnClearLogs" class="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-900 rounded-xl transition" title="Clear All Stored Logs">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-2xl border border-zinc-800/80 max-h-72 overflow-y-auto">
+          <table class="w-full text-left text-xs font-mono-code">
+            <thead class="bg-black/90 text-zinc-400 sticky top-0 border-b border-zinc-800">
+              <tr>
+                <th class="py-3 px-3">Time</th>
+                <th class="py-3 px-3">Flame</th>
+                <th class="py-3 px-3">Temp</th>
+                <th class="py-3 px-3">Humidity</th>
+                <th class="py-3 px-3">Gas (MQ135)</th>
+                <th class="py-3 px-3">Current</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody" class="divide-y divide-zinc-800/60 text-zinc-300">
+              <tr id="emptyHistoryRow">
+                <td colspan="6" class="py-12 text-center text-zinc-500 font-sans">
+                  No snapshots recorded yet. Connect USB to begin telemetry stream.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Raw COM Port Stream Console -->
+      <div class="lg:col-span-5 bg-zinc-950 border border-zinc-800 rounded-3xl p-6 shadow-xl flex flex-col">
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-zinc-800">
+          <div class="flex items-center gap-2">
+            <i data-lucide="terminal" class="w-4 h-4 text-red-500"></i>
+            <span class="text-sm font-black text-white font-mono-code">USB Serial Monitor</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btnSimulateFlame" class="text-xs px-2.5 py-1 bg-red-600/20 text-red-400 hover:bg-red-600/30 font-bold rounded-lg border border-red-600/30 transition">
+              Simulate Alarm
+            </button>
+            <button id="btnClearTerminal" class="text-xs text-zinc-400 hover:text-white px-2 py-1 bg-zinc-900 rounded-lg border border-zinc-800">
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <div id="serialConsole" class="flex-1 bg-black font-mono-code text-[11px] text-zinc-300 p-4 rounded-2xl h-64 overflow-y-auto border border-zinc-900 leading-relaxed whitespace-pre-wrap select-all shadow-inner">
+// FireGuard AI Safety Node Ready.
+// Connected: DHT22 (D2), Flame (D3), MQ-135 (A0), ACS712 (A1), Buzzer (D8), LED (D9).
+// Baud Rate: 9600. Click "Connect USB" above to initiate.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Emergency Audit Log -->
+    <div class="bg-black border-2 border-red-600/80 rounded-3xl p-6 shadow-[0_0_40px_rgba(220,38,38,0.25)] space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-red-950">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-950">
+            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-black text-white uppercase tracking-wider font-mono-code flex items-center gap-2">
+                Emergency Incident Audit Blackbox
+              </h3>
+              <span id="badgeFireIncidentsCount" class="text-xs bg-red-600 text-white font-mono-code font-black px-2.5 py-0.5 rounded-full shadow">0 alerts</span>
+            </div>
+            <p class="text-xs text-zinc-400 mt-0.5">Captures all trigger events (Flame, Gas, High Heat, or Overcurrent) with complete telemetry snapshot.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btnExportFireCsv" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-white bg-red-600 hover:bg-red-500 active:scale-95 rounded-xl transition shadow-[0_0_15px_rgba(220,38,38,0.4)]">
+            <i data-lucide="file-warning" class="w-3.5 h-3.5"></i>
+            <span>Export Incident Log</span>
+          </button>
+          <button id="btnClearFireIncidents" class="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-900 rounded-xl transition" title="Purge Incident Log">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto rounded-2xl border border-red-900/40 max-h-72 overflow-y-auto">
+        <table class="w-full text-left text-xs font-mono-code">
+          <thead class="bg-zinc-950 text-red-400 sticky top-0 border-b border-red-900/60">
+            <tr>
+              <th class="py-3 px-3">Incident ID</th>
+              <th class="py-3 px-3">Timestamp</th>
+              <th class="py-3 px-3">Reason</th>
+              <th class="py-3 px-3">Temp</th>
+              <th class="py-3 px-3">Humidity</th>
+              <th class="py-3 px-3">Gas Level</th>
+              <th class="py-3 px-3">Current</th>
+              <th class="py-3 px-3">Output State</th>
+            </tr>
+          </thead>
+          <tbody id="fireIncidentsTableBody" class="divide-y divide-zinc-900 text-zinc-300">
+            <tr id="emptyFireIncidentsRow">
+              <td colspan="8" class="py-10 text-center text-zinc-500 font-sans">
+                No emergency triggers logged. System normal.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Emergency Modal Popup -->
+  <div id="flameModalBackdrop" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-200">
+    <div class="bg-black border-2 border-red-600 rounded-3xl max-w-lg w-full p-6 sm:p-8 text-center space-y-6 relative overflow-hidden flame-active-glow shadow-[0_0_80px_rgba(220,38,38,0.5)]">
+      
+      <div class="absolute -top-16 -right-16 w-48 h-48 bg-red-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="w-20 h-20 mx-auto rounded-3xl bg-red-600 text-white flex items-center justify-center shadow-xl shadow-red-950 animate-bounce">
+        <i data-lucide="bell-ring" class="w-10 h-10"></i>
+      </div>
+
+      <div>
+        <span class="text-xs font-mono-code font-black uppercase tracking-widest text-red-500 bg-red-950/80 px-3 py-1 rounded-full border border-red-800">SAFETY ALARM TRIPPED</span>
+        <h2 id="modalHazardTitle" class="text-2xl sm:text-3xl font-black text-white tracking-tight mt-2 uppercase">HAZARD DETECTED!</h2>
+        <p id="modalHazardDesc" class="text-xs text-zinc-400 mt-1">Hazard threshold exceeded. Buzzer (Pin D8) and Red LED (Pin D9) activated.</p>
+      </div>
+
+      <div class="grid grid-cols-4 gap-2 bg-zinc-950 border border-zinc-800 p-4 rounded-2xl font-mono-code text-xs">
+        <div class="p-2 rounded-xl bg-black border border-zinc-800">
+          <span class="text-[9px] text-zinc-500 uppercase block font-semibold">Temp</span>
+          <span id="modalTemp" class="text-sm font-black text-red-500">--.-°C</span>
+        </div>
+        <div class="p-2 rounded-xl bg-black border border-zinc-800">
+          <span class="text-[9px] text-zinc-500 uppercase block font-semibold">Humid</span>
+          <span id="modalHum" class="text-sm font-black text-white">--.-%</span>
+        </div>
+        <div class="p-2 rounded-xl bg-black border border-zinc-800">
+          <span class="text-[9px] text-zinc-500 uppercase block font-semibold">Gas</span>
+          <span id="modalGas" class="text-sm font-black text-amber-400">---</span>
+        </div>
+        <div class="p-2 rounded-xl bg-black border border-zinc-800">
+          <span class="text-[9px] text-zinc-500 uppercase block font-semibold">Current</span>
+          <span id="modalCurrent" class="text-sm font-black text-yellow-300">-.-- A</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button id="btnModalSilence" class="w-full py-3.5 bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black rounded-2xl transition text-xs sm:text-sm tracking-wide uppercase shadow-lg shadow-red-950/60">
+          Acknowledge & Silence
+        </button>
+        <button id="btnModalDismiss" class="w-full py-3.5 bg-white hover:bg-zinc-200 active:scale-95 text-black font-black rounded-2xl transition text-xs sm:text-sm tracking-wide uppercase">
+          Dismiss Popup
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Hardware Pinout Modal -->
+  <div id="pinoutModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-2xl w-full p-6 sm:p-7 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="cpu" class="w-5 h-5 text-red-500"></i>
+          <h3 class="text-base font-black text-white font-mono-code uppercase">Arduino Uno Hardware Wiring Reference</h3>
+        </div>
+        <button id="btnClosePinout" class="p-1.5 text-zinc-400 hover:text-white rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono-code">
+          <div class="p-3 rounded-2xl bg-black border border-zinc-800">
+            <span class="text-white font-extrabold block text-sm mb-1">DHT22 Temp/Hum</span>
+            <span class="text-red-500 block font-bold">• Data: Digital D2</span>
+            <span class="text-zinc-400 block">• VCC: 5V / 3.3V</span>
+            <span class="text-zinc-400 block">• GND: GND</span>
+          </div>
+
+          <div class="p-3 rounded-2xl bg-black border border-red-600/40">
+            <span class="text-red-500 font-extrabold block text-sm mb-1">Flame Sensor</span>
+            <span class="text-white block font-bold">• DO: Digital D3</span>
+            <span class="text-zinc-400 block">• VCC: 5V</span>
+            <span class="text-zinc-400 block">• GND: GND</span>
+            <span class="text-[10px] text-zinc-500 block mt-1">Digital HIGH = Flame</span>
+          </div>
+
+          <div class="p-3 rounded-2xl bg-black border border-zinc-800">
+            <span class="text-amber-400 font-extrabold block text-sm mb-1">MQ-135 Gas</span>
+            <span class="text-white block font-bold">• AOUT: Analog A0</span>
+            <span class="text-zinc-400 block">• VCC: 5V</span>
+            <span class="text-zinc-400 block">• GND: GND</span>
+          </div>
+
+          <div class="p-3 rounded-2xl bg-black border border-zinc-800">
+            <span class="text-yellow-400 font-extrabold block text-sm mb-1">ACS712 Current</span>
+            <span class="text-white block font-bold">• OUT: Analog A1</span>
+            <span class="text-zinc-400 block">• VCC: 5V</span>
+            <span class="text-zinc-400 block">• GND: GND</span>
+          </div>
+
+          <div class="p-3 rounded-2xl bg-black border border-zinc-800">
+            <span class="text-white font-extrabold block text-sm mb-1">Buzzer</span>
+            <span class="text-red-500 block font-bold">• Positive (+): D8</span>
+            <span class="text-zinc-400 block">• Negative (−): GND</span>
+          </div>
+
+          <div class="p-3 rounded-2xl bg-black border border-zinc-800">
+            <span class="text-red-500 font-extrabold block text-sm mb-1">Red LED</span>
+            <span class="text-white block font-bold">• Anode (+): D9 (220Ω)</span>
+            <span class="text-zinc-400 block">• Cathode (−): GND</span>
+          </div>
+        </div>
+
+        <div class="p-3 bg-zinc-900 rounded-xl border border-zinc-800 text-zinc-300">
+          <strong>Tip:</strong> Tie all sensor grounds together on the breadboard negative rail and route a single jumper wire directly to the Arduino Uno's GND pin.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== APPLICATION JAVASCRIPT ======================== -->
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Application Master State
+    const STATE = {
+      port: null,
+      reader: null,
+      keepReading: false,
+      isConnected: false,
+      latestReading: null,
+      isHazardAlert: false,
+      hazardReason: "Clear",
+      audioMuted: false,
+      audioCtx: null,
+      sirenOsc: null,
+      sirenInterval: null,
+      modalDismissedForCurrentEvent: false,
+      countdownSeconds: 600,
+      timerId: null,
+      logs: JSON.parse(localStorage.getItem('aegis_multi_logs') || '[]'),
+      fireIncidents: JSON.parse(localStorage.getItem('aegis_multi_incidents') || '[]'),
+
+      // Predictive AI Engine State
+      rollingWindow: [],          // Stores up to 30 recent sensor readings for gradient analysis
+      predictionHistory: JSON.parse(localStorage.getItem('fireguard_ai_predictions') || '[]'),
+      lastCalculatedRisk: null,
+      lastWarningAcknowledged: false,
+      earlyWarningActive: false
+    };
+
+    // DOM Element References
+    const btnSerialConnect = document.getElementById("btnSerialConnect");
+    const btnSerialConnectText = document.getElementById("btnSerialConnectText");
+    const connStatusPill = document.getElementById("connStatusPill");
+    const connStatusDot = document.getElementById("connStatusDot");
+    const connStatusText = document.getElementById("connStatusText");
+
+    const btnToggleNotify = document.getElementById("btnToggleNotify");
+    const labelNotify = document.getElementById("labelNotify");
+    const badgeNotifyDot = document.getElementById("badgeNotifyDot");
+    const btnToggleAudio = document.getElementById("btnToggleAudio");
+    const iconAudio = document.getElementById("iconAudio");
+
+    const hazardAlertBanner = document.getElementById("hazardAlertBanner");
+    const hazardDetailBadge = document.getElementById("hazardDetailBadge");
+    const hazardHeadline = document.getElementById("hazardHeadline");
+    const btnSilenceSiren = document.getElementById("btnSilenceSiren");
+
+    const predictiveWarningBanner = document.getElementById("predictiveWarningBanner");
+    const predWarningScore = document.getElementById("predWarningScore");
+    const predWarningTitle = document.getElementById("predWarningTitle");
+    const predWarningText = document.getElementById("predWarningText");
+    const btnDismissPredWarning = document.getElementById("btnDismissPredWarning");
+
+    const cardFlameState = document.getElementById("cardFlameState");
+    const metricFlameText = document.getElementById("metricFlameText");
+    const metricBuzzerText = document.getElementById("metricBuzzerText");
+    const badgeFlameIcon = document.getElementById("badgeFlameIcon");
+
+    const metricTempC = document.getElementById("metricTempC");
+    const metricHumidity = document.getElementById("metricHumidity");
+    const humProgressBar = document.getElementById("humProgressBar");
+    const humLabelRating = document.getElementById("humLabelRating");
+    
+    const metricMq135 = document.getElementById("metricMq135");
+    const mq135StatusBadge = document.getElementById("mq135StatusBadge");
+
+    const metricCurrent = document.getElementById("metricCurrent");
+    const currentStatusBadge = document.getElementById("currentStatusBadge");
+
+    const countdownDisplay = document.getElementById("countdownDisplay");
+    const snapshotProgressBar = document.getElementById("snapshotProgressBar");
+    const btnManualSnapshot = document.getElementById("btnManualSnapshot");
+
+    const logsTableBody = document.getElementById("logsTableBody");
+    const badgeLogCount = document.getElementById("badgeLogCount");
+    const btnExportCsv = document.getElementById("btnExportCsv");
+    const btnClearLogs = document.getElementById("btnClearLogs");
+
+    const serialConsole = document.getElementById("serialConsole");
+    const btnClearTerminal = document.getElementById("btnClearTerminal");
+    const btnSimulateFlame = document.getElementById("btnSimulateFlame");
+
+    const flameModalBackdrop = document.getElementById("flameModalBackdrop");
+    const modalHazardTitle = document.getElementById("modalHazardTitle");
+    const modalHazardDesc = document.getElementById("modalHazardDesc");
+    const modalTemp = document.getElementById("modalTemp");
+    const modalHum = document.getElementById("modalHum");
+    const modalGas = document.getElementById("modalGas");
+    const modalCurrent = document.getElementById("modalCurrent");
+    const btnModalSilence = document.getElementById("btnModalSilence");
+    const btnModalDismiss = document.getElementById("btnModalDismiss");
+
+    const btnOpenPinout = document.getElementById("btnOpenPinout");
+    const btnClosePinout = document.getElementById("btnClosePinout");
+    const pinoutModal = document.getElementById("pinoutModal");
+
+    const fireIncidentsTableBody = document.getElementById("fireIncidentsTableBody");
+    const badgeFireIncidentsCount = document.getElementById("badgeFireIncidentsCount");
+    const btnExportFireCsv = document.getElementById("btnExportFireCsv");
+    const btnClearFireIncidents = document.getElementById("btnClearFireIncidents");
+
+    // AI Prediction DOM Elements
+    const aiRiskCategoryBadge = document.getElementById("aiRiskCategoryBadge");
+    const aiRiskScoreNumber = document.getElementById("aiRiskScoreNumber");
+    const aiRiskProgressBar = document.getElementById("aiRiskProgressBar");
+    const aiForecastPill = document.getElementById("aiForecastPill");
+    const aiForecastIcon = document.getElementById("aiForecastIcon");
+    const aiForecastText = document.getElementById("aiForecastText");
+
+    const trendTempDelta = document.getElementById("trendTempDelta");
+    const trendTempIcon = document.getElementById("trendTempIcon");
+    const trendTempLabel = document.getElementById("trendTempLabel");
+
+    const trendGasDelta = document.getElementById("trendGasDelta");
+    const trendGasIcon = document.getElementById("trendGasIcon");
+    const trendGasLabel = document.getElementById("trendGasLabel");
+
+    const trendCurDelta = document.getElementById("trendCurDelta");
+    const trendCurIcon = document.getElementById("trendCurIcon");
+    const trendCurLabel = document.getElementById("trendCurLabel");
+
+    const trendFlameDelta = document.getElementById("trendFlameDelta");
+    const trendFlameLabel = document.getElementById("trendFlameLabel");
+
+    const aiGradientVerdict = document.getElementById("aiGradientVerdict");
+    const aiExplanationList = document.getElementById("aiExplanationList");
+    const aiActionHeader = document.getElementById("aiActionHeader");
+    const aiActionDetail = document.getElementById("aiActionDetail");
+    const predictionHistoryTableBody = document.getElementById("predictionHistoryTableBody");
+    const badgePredictionCount = document.getElementById("badgePredictionCount");
+    const btnExportPredCsv = document.getElementById("btnExportPredCsv");
+    const btnClearPredHistory = document.getElementById("btnClearPredHistory");
+
+    // ======================== CHART.JS CONFIGURATION ========================
+    const chartCtx = document.getElementById("liveTelemetryChart").getContext("2d");
+    const MAX_CHART_POINTS = 20;
+    const telemetryChart = new Chart(chartCtx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Temp (°C)",
+            data: [],
+            borderColor: "#ef4444",
+            backgroundColor: "rgba(239, 68, 68, 0.12)",
+            borderWidth: 2.5,
+            tension: 0.35,
+            yAxisID: "yPrimary"
+          },
+          {
+            label: "Humidity (%)",
+            data: [],
+            borderColor: "#ffffff",
+            borderWidth: 2,
+            tension: 0.35,
+            yAxisID: "yPrimary"
+          },
+          {
+            label: "MQ135 Gas (Scaled/10)",
+            data: [],
+            borderColor: "#f59e0b",
+            borderDash: [3, 3],
+            borderWidth: 1.5,
+            yAxisID: "yPrimary"
+          },
+          {
+            label: "Current (A)",
+            data: [],
+            borderColor: "#fde047",
+            borderWidth: 2,
+            yAxisID: "yCurrent"
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 200 },
+        scales: {
+          x: {
+            grid: { color: "#18181b" },
+            ticks: { color: "#71717a", font: { family: "JetBrains Mono", size: 10 } }
+          },
+          yPrimary: {
+            position: "left",
+            grid: { color: "#18181b" },
+            ticks: { color: "#ef4444", font: { family: "JetBrains Mono", size: 10 } },
+            suggestedMin: 0,
+            suggestedMax: 100
+          },
+          yCurrent: {
+            position: "right",
+            grid: { drawOnChartArea: false },
+            ticks: {
+              color: "#fde047",
+              font: { family: "JetBrains Mono", size: 10 },
+              callback: (v) => v + "A"
+            },
+            suggestedMin: 0,
+            suggestedMax: 10
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+
+    // Small Sparkline Chart for AI Risk Score
+    const riskMiniCtx = document.getElementById("riskScoreMiniChart").getContext("2d");
+    const riskMiniChart = new Chart(riskMiniCtx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [{
+          data: [],
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16, 185, 129, 0.15)",
+          borderWidth: 2,
+          pointRadius: 2,
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 150 },
+        scales: {
+          x: { display: false },
+          y: {
+            min: 0,
+            max: 100,
+            grid: { color: "#18181b" },
+            ticks: { color: "#71717a", font: { family: "JetBrains Mono", size: 9 }, stepSize: 25 }
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+
+    function addChartDataPoint(timeStr, tempC, hum, gas, current) {
+      if (telemetryChart.data.labels.length >= MAX_CHART_POINTS) {
+        telemetryChart.data.labels.shift();
+        telemetryChart.data.datasets.forEach(ds => ds.data.shift());
+      }
+      telemetryChart.data.labels.push(timeStr);
+      telemetryChart.data.datasets[0].data.push(tempC);
+      telemetryChart.data.datasets[1].data.push(hum);
+      telemetryChart.data.datasets[2].data.push(gas / 10);
+      telemetryChart.data.datasets[3].data.push(current);
+      telemetryChart.update("none");
+    }
+
+    function addRiskMiniPoint(timeStr, score, categoryColor) {
+      if (riskMiniChart.data.labels.length >= 15) {
+        riskMiniChart.data.labels.shift();
+        riskMiniChart.data.datasets[0].data.shift();
+      }
+      riskMiniChart.data.labels.push(timeStr);
+      riskMiniChart.data.datasets[0].data.push(score);
+      riskMiniChart.data.datasets[0].borderColor = categoryColor;
+      riskMiniChart.update("none");
+    }
+
+    // =========================================================================
+    // AI PREDICTIVE RISK ENGINE: RULE-BASED INFERENCE & EXPLAINABILITY
+    // =========================================================================
+    const AI_PREDICTOR = {
+      // Configurable weights and baseline norms
+      config: {
+        baselineTemp: 24.0,       // Ambient reference °C
+        highTempThreshold: 50.0,   // Critical temp
+        baselineMQ135: 60.0,      // Normal room air ADC
+        criticalMQ135: 400.0,     // Heavy gas/smoke threshold
+        maxCurrentAmps: 5.0,      // ACS712 overcurrent threshold
+        windowSize: 20            // Rolling evaluations buffer
+      },
+
+      /**
+       * Primary evaluation routine called upon every valid telemetry reception
+       */
+      evaluate(current, windowHistory) {
+        const factors = [];
+        let rawScore = 0;
+        let priorityOverride = null;
+
+        // 1. Critical Override Check: Optical Flame Sensor
+        if (current.flame) {
+          priorityOverride = {
+            category: "CRITICAL",
+            score: 100,
+            primaryFactor: "Optical Flame Sensor Active (D3)",
+            reason: "Active combustion infrared wavelength registered directly on optical receiver."
+          };
+          factors.push({
+            name: "Optical Flame Detection (Pin D3)",
+            scoreImpact: 100,
+            detail: "IMMEDIATE FIRE TRIGGER: 100 points assigned via priority safety override.",
+            level: "CRITICAL"
+          });
+        }
+
+        // 2. Multi-Sensor Absolute Level Scoring (if no flame override)
+        // A. Temperature Contribution (Max 30 pts)
+        let tempScore = 0;
+        if (current.tempC > this.config.baselineTemp) {
+          const tempExcess = current.tempC - this.config.baselineTemp;
+          const tempSpan = (this.config.highTempThreshold - this.config.baselineTemp);
+          tempScore = Math.min(30, Math.max(0, (tempExcess / tempSpan) * 30));
+        }
+        rawScore += tempScore;
+        factors.push({
+          name: "Thermal Level (DHT22)",
+          scoreImpact: Math.round(tempScore),
+          detail: `${current.tempC.toFixed(1)}°C (${tempScore > 15 ? 'Elevated' : 'Normal'} range)`,
+          level: tempScore > 20 ? "HIGH" : (tempScore > 10 ? "MED" : "LOW")
+        });
+
+        // B. Gas & Combustion Precursors Contribution (Max 35 pts)
+        let gasScore = 0;
+        if (current.mq135 > this.config.baselineMQ135) {
+          const gasExcess = current.mq135 - this.config.baselineMQ135;
+          const gasSpan = (this.config.criticalMQ135 - this.config.baselineMQ135);
+          gasScore = Math.min(35, Math.max(0, (gasExcess / gasSpan) * 35));
+        }
+        rawScore += gasScore;
+        factors.push({
+          name: "MQ-135 Gas / Smoke ADC",
+          scoreImpact: Math.round(gasScore),
+          detail: `${current.mq135} ADC (${gasScore > 20 ? 'Combustion products detected' : 'Clear atmosphere'})`,
+          level: gasScore > 25 ? "HIGH" : (gasScore > 10 ? "MED" : "LOW")
+        });
+
+        // C. Electrical Overload / Current Contribution (Max 20 pts)
+        let curScore = 0;
+        if (current.currentAmps > 0.5) {
+          curScore = Math.min(20, Math.max(0, (current.currentAmps / this.config.maxCurrentAmps) * 20));
+        }
+        rawScore += curScore;
+        factors.push({
+          name: "Electrical Load (ACS712)",
+          scoreImpact: Math.round(curScore),
+          detail: `${current.currentAmps.toFixed(2)} A (${curScore > 12 ? 'High electrical branch strain' : 'Nominal current'})`,
+          level: curScore > 12 ? "HIGH" : "LOW"
+        });
+
+        // 3. Sensor Gradient / Rate of Change (Δ) Analysis (Max 15 pts)
+        let deltaTemp = 0;
+        let deltaGas = 0;
+        let deltaCur = 0;
+        let gradientScore = 0;
+        let gradientDirection = "STABLE";
+
+        if (windowHistory.length >= 4) {
+          const oldest = windowHistory[0];
+          deltaTemp = current.tempC - oldest.tempC;
+          deltaGas = current.mq135 - oldest.mq135;
+          deltaCur = current.currentAmps - oldest.currentAmps;
+
+          // Accelerated heating (+1°C in short window adds risk)
+          if (deltaTemp >= 1.0) {
+            gradientScore += Math.min(8, deltaTemp * 3);
+          }
+          // Rapid gas rise (+20 ADC in short window adds risk)
+          if (deltaGas >= 20) {
+            gradientScore += Math.min(7, (deltaGas / 20) * 4);
+          }
+        }
+        gradientScore = Math.min(15, gradientScore);
+        rawScore += gradientScore;
+
+        factors.push({
+          name: "Sensor Acceleration Gradient (Δ/dt)",
+          scoreImpact: Math.round(gradientScore),
+          detail: `ΔT: ${deltaTemp >= 0 ? '+' : ''}${deltaTemp.toFixed(1)}°C | ΔGas: ${deltaGas >= 0 ? '+' : ''}${deltaGas} ADC`,
+          level: gradientScore > 8 ? "HIGH" : (gradientScore > 3 ? "MED" : "LOW")
+        });
+
+        // Compute Trajectory Direction
+        if (gradientScore >= 6 || deltaTemp > 1.2 || deltaGas > 25) {
+          gradientDirection = "INCREASING";
+        } else if (deltaTemp < -0.8 && deltaGas < -10) {
+          gradientDirection = "DECREASING";
+        } else {
+          gradientDirection = "STABLE";
+        }
+
+        // Final score rounding & bounds
+        let finalScore = Math.min(100, Math.max(0, Math.round(rawScore)));
+
+        // Priority override applies full scale
+        if (priorityOverride) {
+          finalScore = priorityOverride.score;
+        }
+
+        // Categorize Risk Level
+        let category = "LOW";
+        let categoryColor = "#10b981"; // emerald
+        if (finalScore >= 75 || priorityOverride) {
+          category = "CRITICAL";
+          categoryColor = "#ef4444"; // red
+        } else if (finalScore >= 50) {
+          category = "HIGH";
+          categoryColor = "#f97316"; // orange
+        } else if (finalScore >= 25) {
+          category = "MEDIUM";
+          categoryColor = "#eab308"; // yellow
+        }
+
+        // Determine Primary Contributor
+        let sortedFactors = [...factors].sort((a, b) => b.scoreImpact - a.scoreImpact);
+        let primaryFactor = sortedFactors[0].name;
+        if (finalScore === 0) primaryFactor = "Nominal Environmental Baseline";
+
+        // Determine Protocol / Recommended Action
+        let action = {
+          header: "STATUS NORMAL // NO ACTION REQUIRED",
+          detail: "All telemetry channels are operating inside nominal parameters. Automatic predictive surveillance active.",
+          icon: "check-circle",
+          color: "text-emerald-400"
+        };
+
+        if (category === "CRITICAL") {
+          action = {
+            header: "CRITICAL HAZARD ACTION PROTOCOL",
+            detail: "IMMEDIATE EVACUATION & SUPPRESSION ADVISORY. Check zone for flame or massive electrical flashover. Isolate mains circuit if safe.",
+            icon: "alert-octagon",
+            color: "text-red-500"
+          };
+        } else if (category === "HIGH") {
+          action = {
+            header: "HIGH RISK PROTOCOL // DISPATCH INSPECTION",
+            detail: "Inspect thermal hotspots and verify ventilation. Gas or temperature trajectory approaching trip limits.",
+            icon: "alert-triangle",
+            color: "text-amber-500"
+          };
+        } else if (category === "MEDIUM") {
+          action = {
+            header: "PRE-EMPTIVE ELEVATION PROTOCOL",
+            detail: "Unusual sensor divergence observed. Check for minor electrical load spikes or unventilated fumes.",
+            icon: "info",
+            color: "text-yellow-400"
+          };
+        }
+
+        return {
+          score: finalScore,
+          category,
+          categoryColor,
+          direction: gradientDirection,
+          deltaTemp,
+          deltaGas,
+          deltaCur,
+          factors,
+          primaryFactor,
+          action,
+          timestamp: new Date().toLocaleTimeString()
+        };
+      }
+    };
+
+    /**
+     * Executes prediction cycle and applies explainable visual indicators
+     */
+    function executeAiRiskEvaluation(current) {
+      if (!current) return;
+
+      // Update rolling window
+      STATE.rollingWindow.push({
+        tempC: current.tempC,
+        humidity: current.humidity,
+        mq135: current.mq135,
+        currentAmps: current.currentAmps,
+        flame: current.flame,
+        time: Date.now()
+      });
+      if (STATE.rollingWindow.length > AI_PREDICTOR.config.windowSize) {
+        STATE.rollingWindow.shift();
+      }
+
+      // Run Inference
+      const result = AI_PREDICTOR.evaluate(current, STATE.rollingWindow);
+      STATE.lastCalculatedRisk = result;
+
+      // 1. Update Score & Category Visuals
+      aiRiskScoreNumber.textContent = String(result.score).padStart(2, '0');
+      aiRiskScoreNumber.style.color = result.categoryColor;
+
+      aiRiskCategoryBadge.textContent = result.category;
+      aiRiskCategoryBadge.style.color = result.categoryColor;
+      aiRiskCategoryBadge.style.borderColor = result.categoryColor;
+      aiRiskCategoryBadge.style.backgroundColor = `${result.categoryColor}15`;
+
+      aiRiskProgressBar.style.width = `${result.score}%`;
+      aiRiskProgressBar.style.backgroundColor = result.categoryColor;
+
+      // 2. Update Forecast Trend
+      let forecastIconName = "minus";
+      let forecastColor = "text-zinc-400";
+      if (result.direction === "INCREASING") {
+        forecastIconName = "trending-up";
+        forecastColor = "text-red-500";
+      } else if (result.direction === "DECREASING") {
+        forecastIconName = "trending-down";
+        forecastColor = "text-emerald-400";
+      }
+
+      aiForecastPill.innerHTML = `
+        <i data-lucide="${forecastIconName}" class="w-4 h-4 ${forecastColor}"></i>
+        <span class="${forecastColor}">${result.direction} (ΔT: ${result.deltaTemp >= 0 ? '+' : ''}${result.deltaTemp.toFixed(1)}°)</span>
+      `;
+
+      // 3. Update Multi-Sensor Trajectory Cards
+      trendTempDelta.textContent = `${result.deltaTemp >= 0 ? '+' : ''}${result.deltaTemp.toFixed(1)} °C`;
+      trendTempDelta.className = `text-sm font-black ${result.deltaTemp > 0.5 ? 'text-red-400' : 'text-white'}`;
+      trendTempIcon.textContent = result.deltaTemp > 0.2 ? '↗' : (result.deltaTemp < -0.2 ? '↘' : '→');
+      trendTempLabel.textContent = result.deltaTemp > 0.8 ? 'Rapid Rise' : (result.deltaTemp < -0.8 ? 'Cooling' : 'Steady');
+
+      trendGasDelta.textContent = `${result.deltaGas >= 0 ? '+' : ''}${result.deltaGas} ADC`;
+      trendGasDelta.className = `text-sm font-black ${result.deltaGas > 15 ? 'text-amber-400' : 'text-white'}`;
+      trendGasIcon.textContent = result.deltaGas > 5 ? '↗' : (result.deltaGas < -5 ? '↘' : '→');
+      trendGasLabel.textContent = result.deltaGas > 20 ? 'Fume Accumulation' : (result.deltaGas < -10 ? 'Dissipating' : 'Steady');
+
+      trendCurDelta.textContent = `${result.deltaCur >= 0 ? '+' : ''}${result.deltaCur.toFixed(2)} A`;
+      trendCurDelta.className = `text-sm font-black ${result.deltaCur > 1.0 ? 'text-yellow-400' : 'text-white'}`;
+      trendCurIcon.textContent = result.deltaCur > 0.3 ? '↗' : (result.deltaCur < -0.3 ? '↘' : '→');
+      trendCurLabel.textContent = current.currentAmps > 5.0 ? 'Overload' : 'Nominal';
+
+      trendFlameDelta.textContent = current.flame ? "TRIGGERED (1)" : "0 (Clear)";
+      trendFlameDelta.className = `text-sm font-black ${current.flame ? 'text-red-500 animate-pulse' : 'text-emerald-400'}`;
+      trendFlameLabel.textContent = current.flame ? 'FIRE CONFIRMED' : 'Inactive';
+
+      aiGradientVerdict.textContent = result.category === "CRITICAL"
+        ? "CRITICAL OVERRIDE ACTIVE — Emergency Tripped"
+        : (result.direction === "INCREASING" ? "ACCELERATING RISK GRADIENT — Thermal or Gas Drift" : "Equilibrium / Normal Operating Envelope");
+
+      // 4. Update Explainability List (Safe DOM updates)
+      aiExplanationList.innerHTML = result.factors.map(f => {
+        let dotColor = "bg-zinc-600";
+        let textColor = "text-zinc-300";
+        if (f.level === "CRITICAL") { dotColor = "bg-red-500 animate-pulse"; textColor = "text-red-400 font-bold"; }
+        else if (f.level === "HIGH") { dotColor = "bg-amber-500"; textColor = "text-amber-400 font-semibold"; }
+        else if (f.level === "MED") { dotColor = "bg-yellow-400"; textColor = "text-yellow-300"; }
+        return `
+          <li class="flex items-center justify-between p-2 rounded-lg bg-zinc-950 border border-zinc-800/80">
+            <span class="flex items-center gap-2 ${textColor}">
+              <span class="w-2 h-2 rounded-full ${dotColor}"></span>
+              ${escapeHtml(f.name)}
+            </span>
+            <span class="font-bold text-zinc-400 font-mono-code">${f.scoreImpact} pts <span class="text-zinc-600 text-[10px]">(${escapeHtml(f.detail)})</span></span>
+          </li>
+        `;
+      }).join("");
+
+      // 5. Update Action Protocol
+      aiActionHeader.className = `flex items-center gap-2 font-mono-code font-bold ${result.action.color}`;
+      aiActionHeader.innerHTML = `<i data-lucide="${result.action.icon}" class="w-4 h-4"></i> ${result.action.header}`;
+      aiActionDetail.textContent = result.action.detail;
+
+      // 6. Update Mini Sparkline Chart
+      addRiskMiniPoint(result.timestamp, result.score, result.categoryColor);
+
+      // 7. Early Warning Notification (Pre-alarm advisory)
+      if (result.score >= 55 && !current.flame && !STATE.isHazardAlert) {
+        if (!STATE.lastWarningAcknowledged) {
+          predictiveWarningBanner.classList.remove("hidden");
+          predWarningScore.textContent = `Risk Score: ${result.score}/100 [${result.category}]`;
+          predWarningTitle.textContent = `Pre-Hazard Warning: High Risk Trajectory (${result.primaryFactor})`;
+          predWarningText.textContent = `Telemetry trajectory indicates rising combustion or thermal precursor signals prior to direct flame sensor trigger. Recommended: Inspect monitoring site.`;
+        }
+      } else {
+        predictiveWarningBanner.classList.add("hidden");
+        STATE.lastWarningAcknowledged = false;
+      }
+
+      // 8. Auto-archive prediction every 5th cycle to prevent storage blowup
+      if (!STATE.predCycleCounter) STATE.predCycleCounter = 0;
+      STATE.predCycleCounter++;
+      if (STATE.predCycleCounter % 5 === 0 || result.category === "CRITICAL") {
+        savePredictionRecord(result, current);
+      }
+
+      lucide.createIcons();
+    }
+
+    function savePredictionRecord(pred, sensorData) {
+      const record = {
+        id: `PRED-${Date.now().toString().slice(-6)}`,
+        timestamp: pred.timestamp,
+        score: pred.score,
+        category: pred.category,
+        direction: pred.direction,
+        primaryFactor: pred.primaryFactor,
+        temp: sensorData.tempC.toFixed(1),
+        hum: sensorData.humidity.toFixed(1),
+        gas: sensorData.mq135,
+        current: sensorData.currentAmps.toFixed(2),
+        flame: sensorData.flame ? "1" : "0"
+      };
+
+      STATE.predictionHistory.unshift(record);
+      if (STATE.predictionHistory.length > 100) STATE.predictionHistory.pop();
+
+      try {
+        localStorage.setItem('fireguard_ai_predictions', JSON.stringify(STATE.predictionHistory));
+      } catch (e) {}
+
+      renderPredictionHistoryTable();
+    }
+
+    function renderPredictionHistoryTable() {
+      badgePredictionCount.textContent = `${STATE.predictionHistory.length} evaluations`;
+      if (STATE.predictionHistory.length === 0) {
+        predictionHistoryTableBody.innerHTML = `
+          <tr id="emptyPredRow">
+            <td colspan="6" class="py-6 text-center text-zinc-600 font-sans">
+              Awaiting continuous risk evaluations.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      predictionHistoryTableBody.innerHTML = STATE.predictionHistory.map(p => {
+        let catColor = "text-emerald-400 bg-emerald-950/60 border-emerald-800";
+        if (p.category === "CRITICAL") catColor = "text-red-400 bg-red-950/80 border-red-800 font-black";
+        else if (p.category === "HIGH") catColor = "text-amber-400 bg-amber-950/60 border-amber-800";
+        else if (p.category === "MEDIUM") catColor = "text-yellow-400 bg-yellow-950/60 border-yellow-800";
+
+        return `
+          <tr class="hover:bg-zinc-900/60 transition text-[11px]">
+            <td class="py-2.5 px-3 text-zinc-300 font-semibold">${escapeHtml(p.timestamp)}</td>
+            <td class="py-2.5 px-3 font-bold">${p.score}/100</td>
+            <td class="py-2.5 px-3">
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono-code border ${catColor}">
+                ${escapeHtml(p.category)}
+              </span>
+            </td>
+            <td class="py-2.5 px-3 text-zinc-400">${escapeHtml(p.direction)}</td>
+            <td class="py-2.5 px-3 text-zinc-200 font-medium">${escapeHtml(p.primaryFactor)}</td>
+            <td class="py-2.5 px-3 text-zinc-500">T:${p.temp}°C | G:${p.gas} | I:${p.current}A</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    btnClearPredHistory.addEventListener("click", () => {
+      STATE.predictionHistory = [];
+      localStorage.removeItem('fireguard_ai_predictions');
+      renderPredictionHistoryTable();
+    });
+
+    btnExportPredCsv.addEventListener("click", () => {
+      if (STATE.predictionHistory.length === 0) {
+        alert("No prediction history recorded to export.");
+        return;
+      }
+      const headers = ["Timestamp", "RiskScore", "Category", "Trajectory", "PrimaryFactor", "Temp_C", "Humidity_Pct", "Gas_MQ135", "Current_A", "Flame"];
+      const rows = STATE.predictionHistory.map(p => [
+        `"${p.timestamp}"`,
+        p.score,
+        `"${p.category}"`,
+        `"${p.direction}"`,
+        `"${p.primaryFactor}"`,
+        p.temp,
+        p.hum,
+        p.gas,
+        p.current,
+        p.flame
+      ]);
+      const csvString = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csvString));
+      link.setAttribute("download", `FireGuard_AI_Predictions_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    btnDismissPredWarning.addEventListener("click", () => {
+      predictiveWarningBanner.classList.add("hidden");
+      STATE.lastWarningAcknowledged = true;
+    });
+
+    // Helper to sanitize injected strings safely
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // ======================== AUDIO SIREN ENGINE ========================
+    function startAudioSiren() {
+      if (STATE.audioMuted || STATE.sirenOsc) return;
+      try {
+        if (!STATE.audioCtx) {
+          STATE.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const ctx = STATE.audioCtx;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "sawtooth";
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+
+        let high = true;
+        osc.frequency.setValueAtTime(900, ctx.currentTime);
+
+        STATE.sirenInterval = setInterval(() => {
+          if (!osc || !ctx) return;
+          high = !high;
+          osc.frequency.setValueAtTime(high ? 980 : 700, ctx.currentTime);
+        }, 250);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        STATE.sirenOsc = osc;
+      } catch (err) {
+        console.warn("Audio Context init pending user interaction:", err);
+      }
+    }
+
+    function stopAudioSiren() {
+      if (STATE.sirenInterval) {
+        clearInterval(STATE.sirenInterval);
+        STATE.sirenInterval = null;
+      }
+      if (STATE.sirenOsc) {
+        try {
+          STATE.sirenOsc.stop();
+          STATE.sirenOsc.disconnect();
+        } catch (e) {}
+        STATE.sirenOsc = null;
+      }
+    }
+
+    btnToggleAudio.addEventListener("click", () => {
+      STATE.audioMuted = !STATE.audioMuted;
+      if (STATE.audioMuted) {
+        stopAudioSiren();
+        iconAudio.className = "w-4 h-4 text-zinc-600";
+      } else {
+        iconAudio.className = "w-4 h-4 text-white";
+        if (STATE.isHazardAlert) startAudioSiren();
+      }
+    });
+
+    btnSilenceSiren.addEventListener("click", stopAudioSiren);
+
+    // ======================== NOTIFICATION SYSTEM ========================
+    function updateNotifyStatusBadge() {
+      if (!("Notification" in window)) {
+        btnToggleNotify.disabled = true;
+        labelNotify.textContent = "Unsupported";
+        badgeNotifyDot.className = "w-2 h-2 rounded-full bg-zinc-600";
+        return;
+      }
+      if (Notification.permission === "granted") {
+        labelNotify.textContent = "Alerts: ACTIVE";
+        badgeNotifyDot.className = "w-2 h-2 rounded-full bg-red-500 pulse-live";
+      } else if (Notification.permission === "denied") {
+        labelNotify.textContent = "Alerts: BLOCKED";
+        badgeNotifyDot.className = "w-2 h-2 rounded-full bg-zinc-600";
+      } else {
+        labelNotify.textContent = "Enable Alerts";
+        badgeNotifyDot.className = "w-2 h-2 rounded-full bg-white";
+      }
+    }
+
+    btnToggleNotify.addEventListener("click", async () => {
+      if ("Notification" in window) {
+        const res = await Notification.requestPermission();
+        updateNotifyStatusBadge();
+        if (res === "granted") {
+          new Notification("FireGuard AI Armed", {
+            body: "Multi-hazard AI telemetry desktop notifications active.",
+            icon: "https://placehold.co/128x128/dc2626/ffffff?text=AI"
+          });
+        }
+      }
+    });
+
+    function dispatchDesktopNotification(reading, reason) {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(`CRITICAL HAZARD: ${reason}!`, {
+          body: `Emergency condition at ${reading.timestamp}!\nTemp: ${reading.tempC.toFixed(1)}°C | Gas: ${reading.mq135} | Current: ${reading.currentAmps.toFixed(2)}A`,
+          requireInteraction: true
+        });
+      }
+    }
+
+    function openEmergencyModal(reading, reason) {
+      modalHazardTitle.textContent = `${reason}!`;
+      modalHazardDesc.textContent = `Hardware alert tripped (${reason}). Physical buzzer on D8 and LED on D9 engaged.`;
+      modalTemp.textContent = `${reading.tempC.toFixed(1)}°C`;
+      modalHum.textContent = `${reading.humidity.toFixed(1)}%`;
+      modalGas.textContent = reading.mq135;
+      modalCurrent.textContent = `${reading.currentAmps.toFixed(2)} A`;
+      flameModalBackdrop.classList.remove("hidden");
+    }
+
+    function closeEmergencyModal() {
+      flameModalBackdrop.classList.add("hidden");
+      STATE.modalDismissedForCurrentEvent = true;
+    }
+
+    btnModalDismiss.addEventListener("click", closeEmergencyModal);
+    btnModalSilence.addEventListener("click", () => {
+      stopAudioSiren();
+      closeEmergencyModal();
+    });
+
+    // ======================== INCIDENT BLACKBOX LOG ========================
+    function recordIncident(data, reason) {
+      const now = new Date();
+      const incident = {
+        id: `ALM-${Date.now().toString().slice(-6)}`,
+        date: now.toLocaleDateString(),
+        time: now.toLocaleTimeString(),
+        timestamp: `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`,
+        reason: reason,
+        tempC: data.tempC,
+        humidity: data.humidity,
+        gas: data.mq135,
+        current: data.currentAmps,
+        outputStatus: "D8 BUZZER + D9 LED ACTIVE"
+      };
+
+      STATE.fireIncidents.unshift(incident);
+      if (STATE.fireIncidents.length > 300) STATE.fireIncidents.pop();
+
+      try {
+        localStorage.setItem('aegis_multi_incidents', JSON.stringify(STATE.fireIncidents));
+      } catch (e) {
+        console.error("Storage error", e);
+      }
+
+      renderIncidentsTable();
+      appendConsoleLog(`[HAZARD AUDIT LOGGED] ${incident.id} (${reason}) at ${incident.time}\n`);
+    }
+
+    function renderIncidentsTable() {
+      badgeFireIncidentsCount.textContent = `${STATE.fireIncidents.length} alerts`;
+      if (STATE.fireIncidents.length === 0) {
+        fireIncidentsTableBody.innerHTML = `
+          <tr id="emptyFireIncidentsRow">
+            <td colspan="8" class="py-10 text-center text-zinc-500 font-sans">
+              No emergency triggers logged. System normal.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      fireIncidentsTableBody.innerHTML = STATE.fireIncidents.map(inc => `
+        <tr class="hover:bg-red-950/20 transition">
+          <td class="py-3 px-3 font-bold text-red-500">${escapeHtml(inc.id)}</td>
+          <td class="py-3 px-3 text-zinc-300">${escapeHtml(inc.timestamp)}</td>
+          <td class="py-3 px-3">
+            <span class="px-2 py-0.5 rounded font-black bg-red-600 text-white text-[10px] tracking-wider uppercase shadow">
+              ${escapeHtml(inc.reason)}
+            </span>
+          </td>
+          <td class="py-3 px-3 font-bold text-red-400">${inc.tempC.toFixed(1)} °C</td>
+          <td class="py-3 px-3 font-bold text-white">${inc.humidity.toFixed(1)} %</td>
+          <td class="py-3 px-3 font-bold text-amber-400">${inc.gas}</td>
+          <td class="py-3 px-3 font-bold text-yellow-300">${inc.current.toFixed(2)} A</td>
+          <td class="py-3 px-3">
+            <span class="text-[10px] text-red-400 font-bold bg-red-950/80 px-2 py-0.5 rounded border border-red-800">BUZZER+LED ON</span>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    btnClearFireIncidents.addEventListener("click", () => {
+      STATE.fireIncidents = [];
+      localStorage.removeItem('aegis_multi_incidents');
+      renderIncidentsTable();
+      appendConsoleLog("[AUDIT LOG] All emergency incidents cleared.\n");
+    });
+
+    btnExportFireCsv.addEventListener("click", () => {
+      if (STATE.fireIncidents.length === 0) {
+        alert("No incident records found to export.");
+        return;
+      }
+      const headers = ["IncidentID", "Date", "Time", "Reason", "Temp_C", "Humidity_Pct", "Gas_MQ135", "Current_Amps", "Outputs"];
+      const rows = STATE.fireIncidents.map(i => [
+        `"${i.id}"`,
+        `"${i.date}"`,
+        `"${i.time}"`,
+        `"${i.reason}"`,
+        i.tempC.toFixed(2),
+        i.humidity.toFixed(2),
+        i.gas,
+        i.current.toFixed(2),
+        `"${i.outputStatus}"`
+      ]);
+      const csvString = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csvString));
+      link.setAttribute("download", `FireGuard_Incidents_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // =========================================================================
+    // FLEXIBLE SERIAL STREAM PARSER (Both space & comma delimited streams)
+    // =========================================================================
+    function parseSerialTelemetry(line) {
+      if (!line) return null;
+
+      // Handles formats:
+      // 1) "Temperature:20.20,Humidity:74.50,MQ135:56,MQ135:56:D,Flame:0"
+      // 2) "Temp: 24.5 °C | Humidity: 45.0 % | Flame: DETECTED | MQ-135 Gas Level: 120 | Current: 0.15 A"
+      const tempMatch  = line.match(/Temp(?:erature)?(?:\s*:|:)\s*([\d\.]+)/i);
+      const humMatch   = line.match(/Hum(?:idity)?(?:\s*:|:)\s*([\d\.]+)/i);
+      const mqMatch    = line.match(/(?:MQ-?135(?: Gas Level)?|Gas Level)(?:\s*:|:)\s*([\d\.]+)/i);
+      const curMatch   = line.match(/Current(?:\s*:|:)\s*([\d\.]+)/i);
+      const flameMatch = line.match(/Flame(?: Status)?(?:\s*:|:)\s*([^\s,|]+)/i);
+
+      if (tempMatch || humMatch || mqMatch || flameMatch || curMatch) {
+        let isFlame = false;
+        if (flameMatch) {
+          const val = flameMatch[1].trim().toUpperCase();
+          // Active if 1, DETECTED, TRUE, or LOW (if active-low)
+          isFlame = (val === "1" || val === "DETECTED" || val === "TRUE" || val === "TRIGGERED");
+        }
+
+        return {
+          tempC: tempMatch ? parseFloat(tempMatch[1]) : (STATE.latestReading ? STATE.latestReading.tempC : 24.0),
+          humidity: humMatch ? parseFloat(humMatch[1]) : (STATE.latestReading ? STATE.latestReading.humidity : 50.0),
+          mq135: mqMatch ? parseInt(mqMatch[1], 10) : (STATE.latestReading ? STATE.latestReading.mq135 : 56),
+          currentAmps: curMatch ? parseFloat(curMatch[1]) : (STATE.latestReading ? STATE.latestReading.currentAmps : 0.0),
+          flame: isFlame,
+          timestamp: new Date().toLocaleTimeString()
+        };
+      }
+      return null;
+    }
+
+    function applyTelemetryToUI(data) {
+      STATE.latestReading = data;
+
+      // 1. Numerical Sensor Displays
+      metricTempC.textContent = data.tempC.toFixed(1);
+      metricHumidity.textContent = data.humidity.toFixed(1);
+
+      humProgressBar.style.width = `${Math.min(100, Math.max(0, data.humidity))}%`;
+      if (data.humidity < 30) humLabelRating.textContent = "Dry";
+      else if (data.humidity <= 60) humLabelRating.textContent = "Optimal";
+      else humLabelRating.textContent = "High Moisture";
+
+      // 2. Gas Reading
+      metricMq135.textContent = data.mq135;
+      if (data.mq135 > 400) {
+        mq135StatusBadge.textContent = "HAZARD";
+        mq135StatusBadge.className = "font-mono-code text-[10px] font-bold px-2 py-0.5 rounded bg-red-600 text-white animate-pulse";
+      } else {
+        mq135StatusBadge.textContent = "NORMAL";
+        mq135StatusBadge.className = "font-mono-code text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-800";
+      }
+
+      // 3. Current Reading
+      metricCurrent.textContent = data.currentAmps.toFixed(2);
+      if (data.currentAmps > 5.0) {
+        currentStatusBadge.textContent = "OVERLOAD";
+        currentStatusBadge.className = "font-mono-code text-[10px] font-bold px-2 py-0.5 rounded bg-red-600 text-white animate-pulse";
+      } else {
+        currentStatusBadge.textContent = "NORMAL";
+        currentStatusBadge.className = "font-mono-code text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-800";
+      }
+
+      // 4. Critical Threshold Assessment
+      let hazardReason = null;
+      if (data.flame) {
+        hazardReason = "FIRE DETECTED";
+      } else if (data.mq135 > 400) {
+        hazardReason = "GAS / SMOKE LEAK";
+      } else if (data.tempC > 50.0) {
+        hazardReason = "OVERTEMPERATURE";
+      } else if (data.currentAmps > 5.0) {
+        hazardReason = "OVERCURRENT";
+      }
+
+      // 5. Emergency Banner & Modal Activation
+      if (hazardReason) {
+        hazardHeadline.textContent = `${hazardReason} DETECTED`;
+        hazardDetailBadge.textContent = `Hardware Outputs Active: Buzzer (D8) + LED (D9)`;
+
+        if (!STATE.isHazardAlert) {
+          STATE.isHazardAlert = true;
+          STATE.hazardReason = hazardReason;
+          STATE.modalDismissedForCurrentEvent = false;
+
+          openEmergencyModal(data, hazardReason);
+          dispatchDesktopNotification(data, hazardReason);
+          startAudioSiren();
+          recordIncident(data, hazardReason);
+        } else if (!STATE.modalDismissedForCurrentEvent && flameModalBackdrop.classList.contains("hidden")) {
+          openEmergencyModal(data, hazardReason);
+        }
+
+        hazardAlertBanner.classList.remove("hidden");
+        cardFlameState.className = "bg-red-600 text-white border-2 border-white rounded-3xl p-5 relative overflow-hidden shadow-2xl flame-active-glow transition-all duration-300";
+        badgeFlameIcon.className = "w-8 h-8 rounded-xl bg-white text-red-600 flex items-center justify-center animate-bounce";
+        badgeFlameIcon.innerHTML = `<i data-lucide="flame" class="w-4 h-4"></i>`;
+        metricFlameText.textContent = data.flame ? "FIRE!" : "TRIPPED";
+        metricFlameText.className = "text-3xl font-black tracking-tight text-white font-mono-code animate-pulse";
+        metricBuzzerText.textContent = "D8 & D9 ACTIVE";
+        metricBuzzerText.className = "font-mono-code font-black text-black bg-white px-2 py-0.5 rounded";
+
+      } else {
+        STATE.isHazardAlert = false;
+        STATE.hazardReason = "Clear";
+        STATE.modalDismissedForCurrentEvent = false;
+        flameModalBackdrop.classList.add("hidden");
+        hazardAlertBanner.classList.add("hidden");
+        stopAudioSiren();
+
+        cardFlameState.className = "bg-white text-black border-2 border-zinc-200 rounded-3xl p-5 relative overflow-hidden shadow-xl transition-all duration-300";
+        badgeFlameIcon.className = "w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center";
+        badgeFlameIcon.innerHTML = `<i data-lucide="shield-check" class="w-4 h-4"></i>`;
+        metricFlameText.textContent = "SAFE";
+        metricFlameText.className = "text-3xl font-black tracking-tight text-black font-mono-code";
+        metricBuzzerText.textContent = "STANDBY";
+        metricBuzzerText.className = "font-mono-code font-bold text-zinc-900 bg-zinc-100 px-2 py-0.5 rounded";
+      }
+
+      // Add to telemetry chart
+      addChartDataPoint(data.timestamp, data.tempC, data.humidity, data.mq135, data.currentAmps);
+
+      // Trigger continuous AI risk evaluation
+      executeAiRiskEvaluation(data);
+    }
+
+    // ======================== SNAPSHOT AUTO LOGGER (10 Mins) ========================
+    function startSnapshotCountdown() {
+      if (STATE.timerId) clearInterval(STATE.timerId);
+      STATE.countdownSeconds = 600;
+
+      STATE.timerId = setInterval(() => {
+        if (STATE.latestReading) {
+          STATE.countdownSeconds--;
+
+          const mins = Math.floor(STATE.countdownSeconds / 60);
+          const secs = STATE.countdownSeconds % 60;
+          countdownDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+          const pct = ((600 - STATE.countdownSeconds) / 600) * 100;
+          snapshotProgressBar.style.width = `${pct}%`;
+
+          if (STATE.countdownSeconds <= 0) {
+            recordSnapshot();
+            STATE.countdownSeconds = 600;
+          }
+        }
+      }, 1000);
+    }
+
+    function recordSnapshot() {
+      if (!STATE.latestReading) return;
+
+      const newRecord = {
+        id: Date.now(),
+        date: new Date().toLocaleDateString(),
+        ...STATE.latestReading
+      };
+
+      STATE.logs.unshift(newRecord);
+      if (STATE.logs.length > 250) STATE.logs.pop();
+
+      try {
+        localStorage.setItem('aegis_multi_logs', JSON.stringify(STATE.logs));
+      } catch (e) {}
+
+      renderLogsTable();
+      appendConsoleLog(`[ARCHIVE LOG] Temp: ${newRecord.tempC.toFixed(1)}°C | Hum: ${newRecord.humidity.toFixed(1)}% | Gas: ${newRecord.mq135} | Current: ${newRecord.currentAmps.toFixed(2)}A\n`);
+    }
+
+    btnManualSnapshot.addEventListener("click", () => {
+      recordSnapshot();
+      STATE.countdownSeconds = 600;
+      countdownDisplay.textContent = "10:00";
+      snapshotProgressBar.style.width = "0%";
+    });
+
+    function renderLogsTable() {
+      badgeLogCount.textContent = `${STATE.logs.length} logs`;
+      if (STATE.logs.length === 0) {
+        logsTableBody.innerHTML = `
+          <tr id="emptyHistoryRow">
+            <td colspan="6" class="py-12 text-center text-zinc-500 font-sans">
+              No snapshots recorded yet. Connect USB to begin telemetry stream.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      logsTableBody.innerHTML = STATE.logs.map(log => `
+        <tr class="hover:bg-zinc-900/60 transition">
+          <td class="py-3 px-3 text-zinc-300 font-semibold">${escapeHtml(log.timestamp)}</td>
+          <td class="py-3 px-3">
+            <span class="px-2 py-0.5 rounded font-bold ${log.flame ? 'bg-red-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'}">
+              ${log.flame ? 'FLAME' : 'SAFE'}
+            </span>
+          </td>
+          <td class="py-3 px-3 text-red-500 font-bold">${log.tempC.toFixed(1)} °C</td>
+          <td class="py-3 px-3 text-white font-bold">${log.humidity.toFixed(1)} %</td>
+          <td class="py-3 px-3 text-amber-400 font-bold">${log.mq135}</td>
+          <td class="py-3 px-3 text-yellow-300 font-bold">${log.currentAmps.toFixed(2)} A</td>
+        </tr>
+      `).join("");
+    }
+
+    btnClearLogs.addEventListener("click", () => {
+      STATE.logs = [];
+      localStorage.removeItem('aegis_multi_logs');
+      renderLogsTable();
+      appendConsoleLog("[ARCHIVE] Telemetry records purged.\n");
+    });
+
+    btnExportCsv.addEventListener("click", () => {
+      if (STATE.logs.length === 0) {
+        alert("No snapshot records found to export.");
+        return;
+      }
+      const headers = ["Timestamp", "Date", "Flame", "Temperature_C", "Humidity_Pct", "Gas_MQ135", "Current_Amps"];
+      const rows = STATE.logs.map(l => [
+        `"${l.timestamp}"`,
+        `"${l.date}"`,
+        l.flame ? "FLAME" : "SAFE",
+        l.tempC.toFixed(2),
+        l.humidity.toFixed(2),
+        l.mq135,
+        l.currentAmps.toFixed(2)
+      ]);
+      const csvString = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csvString));
+      link.setAttribute("download", `FireGuard_Telemetry_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // ======================== WEB SERIAL CONNECTION ========================
+    btnSerialConnect.addEventListener("click", async () => {
+      if (!("serial" in navigator)) {
+        alert("Web Serial API is not supported in this browser. Please open in Google Chrome or Microsoft Edge on desktop.");
+        return;
+      }
+
+      if (STATE.isConnected) {
+        disconnectSerial();
+        return;
+      }
+
+      try {
+        STATE.port = await navigator.serial.requestPort();
+        await STATE.port.open({ baudRate: 9600 });
+
+        STATE.isConnected = true;
+        STATE.keepReading = true;
+        setConnectionUI(true);
+        btnManualSnapshot.disabled = false;
+
+        appendConsoleLog("\n[CONNECTED] COM Port Open @ 9600 Baud.\nStreaming sensor packets...\n");
+        readSerialStream();
+      } catch (err) {
+        console.error("Port error:", err);
+        alert("Unable to open serial port. Verify the Arduino IDE Serial Monitor is closed so the port is free.");
+        setConnectionUI(false);
+      }
+    });
+
+    async function disconnectSerial() {
+      STATE.keepReading = false;
+      try {
+        if (STATE.reader) {
+          await STATE.reader.cancel();
+          STATE.reader = null;
+        }
+        if (STATE.port) {
+          await STATE.port.close();
+          STATE.port = null;
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        STATE.isConnected = false;
+        setConnectionUI(false);
+        btnManualSnapshot.disabled = true;
+        appendConsoleLog("\n[DISCONNECTED] Port closed.\n");
+      }
+    }
+
+    function setConnectionUI(connected) {
+      if (connected) {
+        connStatusDot.className = "w-2.5 h-2.5 rounded-full bg-white pulse-live";
+        connStatusText.textContent = "ONLINE (9600)";
+        connStatusPill.className = "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-mono-code font-bold bg-zinc-900 border border-red-600/50 text-white";
+        btnSerialConnectText.textContent = "Disconnect";
+        btnSerialConnect.className = "flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-black text-white bg-zinc-800 hover:bg-zinc-700 active:scale-95 transition rounded-xl border border-zinc-700";
+      } else {
+        connStatusDot.className = "w-2.5 h-2.5 rounded-full bg-red-600";
+        connStatusText.textContent = "OFFLINE";
+        connStatusPill.className = "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-mono-code font-bold bg-zinc-900 border border-zinc-800 text-zinc-400";
+        btnSerialConnectText.textContent = "Connect USB (9600)";
+        btnSerialConnect.className = "flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-black text-white bg-red-600 hover:bg-red-500 active:scale-95 transition rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.4)]";
+      }
+    }
+
+    async function readSerialStream() {
+      const textDecoder = new TextDecoderStream();
+      STATE.port.readable.pipeTo(textDecoder.writable);
+      STATE.reader = textDecoder.readable.getReader();
+
+      let lineBuffer = "";
+
+      try {
+        while (STATE.keepReading) {
+          const { value, done } = await STATE.reader.read();
+          if (done) break;
+          if (value) {
+            lineBuffer += value;
+            const lines = lineBuffer.split("\n");
+            lineBuffer = lines.pop();
+
+            for (const rawLine of lines) {
+              const clean = rawLine.trim();
+              if (clean.length > 0) {
+                appendConsoleLog(clean + "\n");
+                const parsed = parseSerialTelemetry(clean);
+                if (parsed) {
+                  applyTelemetryToUI(parsed);
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        if (STATE.isConnected) appendConsoleLog(`\n[Stream Error]: ${err.message}\n`);
+      } finally {
+        if (STATE.reader) STATE.reader.releaseLock();
+      }
+    }
+
+    function appendConsoleLog(str) {
+      serialConsole.textContent += str;
+      serialConsole.scrollTop = serialConsole.scrollHeight;
+    }
+
+    btnClearTerminal.addEventListener("click", () => {
+      serialConsole.textContent = "";
+    });
+
+    // Simulation toggle for testing UI alerts & AI predictions
+    let simAlertState = false;
+    btnSimulateFlame.addEventListener("click", () => {
+      simAlertState = !simAlertState;
+      btnSimulateFlame.textContent = simAlertState ? "Reset Safe" : "Simulate Alarm";
+      btnSimulateFlame.className = simAlertState 
+        ? "text-xs px-2.5 py-1 bg-red-600 text-white font-black rounded-lg transition animate-pulse"
+        : "text-xs px-2.5 py-1 bg-red-600/20 text-red-400 hover:bg-red-600/30 font-bold rounded-lg border border-red-600/30 transition";
+
+      const simLine = simAlertState
+        ? "Temperature:53.20,Humidity:64.00,MQ135:520,MQ135:520:D,Flame:1,Current:5.80"
+        : "Temperature:20.20,Humidity:74.50,MQ135:56,MQ135:56:D,Flame:0,Current:0.15";
+
+      appendConsoleLog(`[SIMULATION TEST] ${simLine}\n`);
+      const parsed = parseSerialTelemetry(simLine);
+      if (parsed) applyTelemetryToUI(parsed);
+    });
+
+    btnOpenPinout.addEventListener("click", () => pinoutModal.classList.remove("hidden"));
+    btnClosePinout.addEventListener("click", () => pinoutModal.classList.add("hidden"));
+    pinoutModal.addEventListener("click", (e) => {
+      if (e.target === pinoutModal) pinoutModal.classList.add("hidden");
+    });
+
+    // ======================== INITIALIZATION ========================
+    window.addEventListener("DOMContentLoaded", () => {
+      renderLogsTable();
+      renderIncidentsTable();
+      renderPredictionHistoryTable();
+      startSnapshotCountdown();
+      updateNotifyStatusBadge();
+
+      // Seed baseline normal state
+      const initial = parseSerialTelemetry("Temperature:20.20,Humidity:74.50,MQ135:56,MQ135:56:D,Flame:0,Current:0.15");
+      if (initial) applyTelemetryToUI(initial);
+    });
+  </script>
+</body>
+</html>
